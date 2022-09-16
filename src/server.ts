@@ -1,10 +1,17 @@
-import express from 'express'
-import {PrismaClient} from '@prisma/client'
+import express from 'express';
+import {PrismaClient} from '@prisma/client';
+import convertHourStringToMinutes from './utils/convertHourStringToMinutes';
+import convertMinutesToString from './convertMinutesToString';
+import cors from "cors";
 
-const app = express()
-app.use(express.json())
+const app = express();
+const prisma = new PrismaClient();
 
-const prisma = new PrismaClient()
+//Permitindo json no servidor express
+app.use(express.json());
+
+//Config cors da aplicação (camada de proteção contra acessos ao backend)
+app.use(cors())
 
 /*HTTP methods / API RESTfull / 
 
@@ -28,11 +35,11 @@ app.get('/games', async (req, res) => {
         }
     })
 
-    res.status(200).json(games)
+    return res.status(200).json(games)
 })
 app.post('/games/:id/ads', async (req, res) => {
-    const gameId = req.params.id
-    const body = req.body
+    const gameId = req.params.id;
+    const body = req.body;
 
     const ad = await prisma.ad.create({
         data: {
@@ -41,13 +48,13 @@ app.post('/games/:id/ads', async (req, res) => {
 	        yearsPlaying: body.yearsPlaying,
             discord: body.discord,
             weekDays: body.weekDays.join(','),
-            hourStart: body.hourStart,
-            hourEnd: body.hourEnd,
+            hourStart: convertHourStringToMinutes(body.hourStart),
+            hourEnd: convertHourStringToMinutes(body.hourEnd),
             useVoiceChannel:  body.useVoiceChannel,
         }
     })
     
-    res.status(201).json(body)
+    return res.status(201).json(ad);
 })
 app.get('/games/:id/ads', async (req, res) => {
     const gameId = req.params.id
@@ -73,7 +80,9 @@ app.get('/games/:id/ads', async (req, res) => {
     res.status(200).json(ads.map(ad => {
         return{
             ...ad,
-            weekDays: ad.weekDays.split(',')
+            weekDays: ad.weekDays.split(','),
+            hourStart: convertMinutesToString(ad.hourStart),
+            hourEnd: convertMinutesToString(ad.hourEnd),
         }
     }))
 })
